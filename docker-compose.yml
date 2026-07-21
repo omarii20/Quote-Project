@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: quote-postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_USER: quote_user
+      POSTGRES_PASSWORD: quote_password
+      POSTGRES_DB: quote_db
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - quote_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  quote_postgres_data:
