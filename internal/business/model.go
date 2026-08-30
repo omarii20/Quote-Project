@@ -14,3 +14,12 @@ type Business struct {
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }
+
+type UpdateBusinessRequest struct {
+	BusinessName *string `json:"business_name"`
+	OwnerName    *string `json:"owner_name"`
+	Phone        *string `json:"phone"`
+	Email        *string `json:"email"`
+	Address      *string `json:"address"`
+	LogoURL      *string `json:"logo_url"`
+}

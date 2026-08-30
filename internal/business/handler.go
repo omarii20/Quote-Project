@@ -83,3 +83,53 @@ func (h *Handler) GetBusiness(w http.ResponseWriter, r *http.Request, id string)
 		"business": b,
 	})
 }
+
+// UpdateBusiness handles PATCH /businesses/{id}.
+func (h *Handler) UpdateBusiness(w http.ResponseWriter, r *http.Request, id string) {
+	w.Header().Set("Content-Type", "application/json")
+
+	businessID, err := strconv.ParseInt(id, 10, 64)
+	if err != nil || businessID <= 0 {
+		w.WriteHeader(http.StatusBadRequest)
+
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": "invalid business id",
+		})
+		return
+	}
+
+	var req UpdateBusinessRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": "invalid request body",
+		})
+		return
+	}
+
+	b, err := h.service.UpdateBusiness(r.Context(), businessID, &req)
+	if err != nil {
+		if errors.Is(err, ErrBusinessNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+
+			json.NewEncoder(w).Encode(map[string]string{
+				"error": "business not found",
+			})
+			return
+		}
+
+		w.WriteHeader(http.StatusBadRequest)
+
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success":  true,
+		"business": b,
+	})
+}

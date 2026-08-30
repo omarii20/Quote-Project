@@ -48,3 +48,39 @@ func (s *Service) CreateBusiness(ctx context.Context, b *Business) error {
 func (s *Service) GetBusiness(ctx context.Context, id int64) (*Business, error) {
 	return s.repo.GetByID(ctx, id)
 }
+
+// UpdateBusiness updates an existing business.
+func (s *Service) UpdateBusiness(ctx context.Context, id int64, req *UpdateBusinessRequest) (*Business, error) {
+
+	if req.BusinessName != nil {
+		value := strings.TrimSpace(*req.BusinessName)
+
+		if value == "" {
+			return nil, errors.New("business name cannot be empty")
+		}
+
+		req.BusinessName = &value
+	}
+
+	if req.OwnerName != nil {
+		value := strings.TrimSpace(*req.OwnerName)
+
+		if value == "" {
+			return nil, errors.New("owner name cannot be empty")
+		}
+
+		req.OwnerName = &value
+	}
+
+	if req.Phone != nil {
+		value := strings.TrimSpace(*req.Phone)
+
+		if value == "" {
+			return nil, errors.New("phone cannot be empty")
+		}
+
+		req.Phone = &value
+	}
+
+	return s.repo.Update(ctx, id, req)
+}

@@ -96,3 +96,56 @@ func (r *Repository) GetByID(ctx context.Context, id int64) (*Business, error) {
 
 	return &b, nil
 }
+
+// Update updates specific fields of an existing business.
+func (r *Repository) Update(ctx context.Context, id int64, req *UpdateBusinessRequest) (*Business, error) {
+
+	query := `
+		UPDATE businesses
+		SET
+			business_name = COALESCE($1, business_name),
+			owner_name = COALESCE($2, owner_name),
+			phone = COALESCE($3, phone),
+			email = COALESCE($4, email),
+			address = COALESCE($5, address),
+			logo_url = COALESCE($6, logo_url),
+			updated_at = NOW()
+		WHERE id = $7
+		RETURNING
+			id,
+			firebase_uid,
+			business_name,
+			owner_name,
+			phone,
+			email,
+			address,
+			logo_url,
+			created_at,
+			updated_at
+	`
+
+	var b Business
+
+	err := r.db.QueryRowContext(ctx, query, req.BusinessName, req.OwnerName, req.Phone, req.Email, req.Address, req.LogoURL, id).Scan(
+		&b.ID,
+		&b.FirebaseUID,
+		&b.BusinessName,
+		&b.OwnerName,
+		&b.Phone,
+		&b.Email,
+		&b.Address,
+		&b.LogoURL,
+		&b.CreatedAt,
+		&b.UpdatedAt,
+	)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrBusinessNotFound
+		}
+
+		return nil, fmt.Errorf("failed to update business: %w", err)
+	}
+
+	return &b, nil
+}
