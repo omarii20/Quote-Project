@@ -2,7 +2,9 @@ package main
 
 import (
 	"log"
+	"net/http"
 
+	"github.com/omarii20/Quote-Project/internal/business"
 	"github.com/omarii20/Quote-Project/internal/config"
 	"github.com/omarii20/Quote-Project/internal/database"
 )
@@ -19,5 +21,15 @@ func main() {
 	}
 	defer db.Close()
 
-	log.Println("connected to PostgreSQL successfully")
+	businessRepo := business.NewRepository(db)
+	businessService := business.NewService(businessRepo)
+	businessHandler := business.NewHandler(businessService)
+
+	business.RegisterRoutes(businessHandler)
+
+	log.Println("server running on http://localhost:8080")
+
+	if err := http.ListenAndServe(":8080", nil); err != nil {
+		log.Fatalf("server failed: %v", err)
+	}
 }
