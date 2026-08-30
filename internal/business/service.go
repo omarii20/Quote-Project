@@ -6,6 +6,8 @@ import (
 	"strings"
 )
 
+var ErrBusinessNotFound = errors.New("business not found")
+
 type Service struct {
 	repo *Repository
 }
@@ -16,6 +18,7 @@ func NewService(repo *Repository) *Service {
 	}
 }
 
+// CreateBusiness creates a new business in the database.
 func (s *Service) CreateBusiness(ctx context.Context, b *Business) error {
 	b.BusinessName = strings.TrimSpace(b.BusinessName)
 	b.OwnerName = strings.TrimSpace(b.OwnerName)
@@ -39,4 +42,9 @@ func (s *Service) CreateBusiness(ctx context.Context, b *Business) error {
 	}
 
 	return s.repo.Create(ctx, b)
+}
+
+// GetBusiness retrieves a business by its ID from the database.
+func (s *Service) GetBusiness(ctx context.Context, id int64) (*Business, error) {
+	return s.repo.GetByID(ctx, id)
 }
