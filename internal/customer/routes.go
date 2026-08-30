@@ -1,4 +1,4 @@
-package business
+package customer
 
 import (
 	"net/http"
@@ -7,11 +7,12 @@ import (
 
 func RegisterRoutes(handler *Handler) {
 
-	// POST/businesses
-	http.HandleFunc("/businesses", func(w http.ResponseWriter, r *http.Request) {
+	// POST /customers
+	http.HandleFunc("/customers", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
+
 		case http.MethodPost:
-			handler.CreateBusiness(w, r)
+			handler.CreateCustomer(w, r)
 
 		default:
 			w.Header().Set("Content-Type", "application/json")
@@ -19,23 +20,19 @@ func RegisterRoutes(handler *Handler) {
 		}
 	})
 
-	// GET-PATCH /businesses/{id}
-	http.HandleFunc("/businesses/", func(w http.ResponseWriter, r *http.Request) {
+	// GET /customers/{id}
+	http.HandleFunc("/customers/", func(w http.ResponseWriter, r *http.Request) {
 
-		id := strings.TrimPrefix(r.URL.Path, "/businesses/")
+		id := strings.TrimPrefix(r.URL.Path, "/customers/")
 
 		switch r.Method {
 
 		case http.MethodGet:
-			handler.GetBusiness(w, r, id)
-
-		case http.MethodPatch:
-			handler.UpdateBusiness(w, r, id)
+			handler.GetCustomer(w, r, id)
 
 		default:
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusMethodNotAllowed)
 		}
 	})
-
 }
