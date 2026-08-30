@@ -14,6 +14,9 @@ func RegisterRoutes(handler *Handler) {
 		case http.MethodPost:
 			handler.CreateCustomer(w, r)
 
+		case http.MethodGet:
+			handler.GetCustomersByBusinessID(w, r)
+
 		default:
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusMethodNotAllowed)

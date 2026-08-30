@@ -87,3 +87,44 @@ func (h *Handler) GetCustomer(w http.ResponseWriter, r *http.Request, id string)
 		"customer": c,
 	})
 }
+
+// GetCustomersByBusinessID handles GET /customers?business_id={id}.
+func (h *Handler) GetCustomersByBusinessID(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	businessIDStr := r.URL.Query().Get("business_id")
+
+	businessID, err := strconv.ParseInt(businessIDStr, 10, 64)
+	if err != nil || businessID <= 0 {
+		w.WriteHeader(http.StatusBadRequest)
+
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": "invalid business id",
+		})
+		return
+	}
+
+	customers, err := h.service.GetCustomersByBusinessID(r.Context(), businessID)
+	if err != nil {
+		if errors.Is(err, ErrBusinessNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+
+			json.NewEncoder(w).Encode(map[string]string{
+				"error": "business not found",
+			})
+			return
+		}
+
+		w.WriteHeader(http.StatusInternalServerError)
+
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": "internal server error",
+		})
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success":   true,
+		"customers": customers,
+	})
+}

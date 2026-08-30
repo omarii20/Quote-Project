@@ -7,6 +7,7 @@ import (
 )
 
 var ErrCustomerNotFound = errors.New("customer not found")
+var ErrBusinessNotFound = errors.New("business not found")
 
 type Service struct {
 	repo *Repository
@@ -18,6 +19,7 @@ func NewService(repo *Repository) *Service {
 	}
 }
 
+// CreateCustomer creates a new customer in the database.
 func (s *Service) CreateCustomer(ctx context.Context, c *Customer) error {
 	c.Name = strings.TrimSpace(c.Name)
 	c.Phone = strings.TrimSpace(c.Phone)
@@ -37,6 +39,35 @@ func (s *Service) CreateCustomer(ctx context.Context, c *Customer) error {
 	return s.repo.Create(ctx, c)
 }
 
+// GetCustomer retrieves a customer by its ID from the database.
 func (s *Service) GetCustomer(ctx context.Context, id int64) (*Customer, error) {
 	return s.repo.GetByID(ctx, id)
+}
+
+// Get CustomersByBusinessID retrieves all customers associated with a specific business ID.
+func (s *Service) GetCustomersByBusinessID(ctx context.Context, businessID int64) ([]Customer, error) {
+
+	if businessID <= 0 {
+		return nil, errors.New("invalid business id")
+	}
+
+	exists, err := s.repo.BusinessExists(ctx, businessID)
+	if err != nil {
+		return nil, err
+	}
+
+	if !exists {
+		return nil, ErrBusinessNotFound
+	}
+
+	customers, err := s.repo.GetByBusinessID(ctx, businessID)
+	if err != nil {
+		return nil, err
+	}
+
+	if customers == nil {
+		customers = []Customer{}
+	}
+
+	return customers, nil
 }
