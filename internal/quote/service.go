@@ -157,3 +157,12 @@ func (s *Service) GetQuotesByBusinessID(ctx context.Context, businessID int64, p
 
 	return s.repo.GetByBusinessID(ctx, businessID, period)
 }
+
+// DeleteQuote deletes a quote by its ID.
+func (s *Service) DeleteQuote(ctx context.Context, quoteID int64) error {
+	if quoteID <= 0 {
+		return errors.New("quote id is required")
+	}
+
+	return s.repo.Delete(ctx, quoteID)
+}

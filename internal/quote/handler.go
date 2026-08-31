@@ -104,3 +104,19 @@ func (h *Handler) GetQuotesByBusinessID(w http.ResponseWriter, r *http.Request) 
 
 	json.NewEncoder(w).Encode(quotes)
 }
+
+// DeleteQuote handles the HTTP request to delete a quote by its ID.
+func (h *Handler) DeleteQuote(w http.ResponseWriter, r *http.Request, id string) {
+	quoteID, err := strconv.ParseInt(id, 10, 64)
+	if err != nil {
+		http.Error(w, "invalid quote id", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.service.DeleteQuote(r.Context(), quoteID); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}

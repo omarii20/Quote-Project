@@ -464,3 +464,29 @@ func (r *Repository) GetByBusinessID(ctx context.Context, businessID int64, peri
 
 	return quotes, nil
 }
+
+// Delete removes a quote from the database by its ID.
+func (r *Repository) Delete(ctx context.Context, quoteID int64) error {
+	result, err := r.db.ExecContext(
+		ctx,
+		`
+			DELETE FROM quotes
+			WHERE id = $1
+		`,
+		quoteID,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to delete quote: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to check deleted quote: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return errors.New("quote not found")
+	}
+
+	return nil
+}
