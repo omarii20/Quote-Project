@@ -6,6 +6,7 @@ import (
 
 	"github.com/omarii20/Quote-Project/internal/business"
 	"github.com/omarii20/Quote-Project/internal/config"
+	"github.com/omarii20/Quote-Project/internal/customer"
 	"github.com/omarii20/Quote-Project/internal/database"
 )
 
@@ -21,11 +22,19 @@ func main() {
 	}
 	defer db.Close()
 
+	// Initialize business module
 	businessRepo := business.NewRepository(db)
 	businessService := business.NewService(businessRepo)
 	businessHandler := business.NewHandler(businessService)
 
 	business.RegisterRoutes(businessHandler)
+
+	// Initialize customer module
+	customerRepo := customer.NewRepository(db)
+	customerService := customer.NewService(customerRepo)
+	customerHandler := customer.NewHandler(customerService)
+
+	customer.RegisterRoutes(customerHandler)
 
 	log.Println("server running on http://localhost:8080")
 

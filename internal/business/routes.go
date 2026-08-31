@@ -7,7 +7,7 @@ import (
 
 func RegisterRoutes(handler *Handler) {
 
-	// /businesses
+	// POST/businesses
 	http.HandleFunc("/businesses", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodPost:
@@ -19,7 +19,7 @@ func RegisterRoutes(handler *Handler) {
 		}
 	})
 
-	// /businesses/{id}
+	// GET-PATCH /businesses/{id}
 	http.HandleFunc("/businesses/", func(w http.ResponseWriter, r *http.Request) {
 
 		id := strings.TrimPrefix(r.URL.Path, "/businesses/")
