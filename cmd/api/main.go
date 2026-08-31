@@ -8,6 +8,7 @@ import (
 	"github.com/omarii20/Quote-Project/internal/config"
 	"github.com/omarii20/Quote-Project/internal/customer"
 	"github.com/omarii20/Quote-Project/internal/database"
+	"github.com/omarii20/Quote-Project/internal/quote"
 )
 
 func main() {
@@ -36,6 +37,14 @@ func main() {
 
 	customer.RegisterRoutes(customerHandler)
 
+	// Initialize quote module
+	quoteRepo := quote.NewRepository(db)
+	quoteService := quote.NewService(quoteRepo)
+	quoteHandler := quote.NewHandler(quoteService)
+
+	quote.RegisterRoutes(quoteHandler)
+
+	// Start the HTTP server
 	log.Println("server running on http://localhost:8080")
 
 	if err := http.ListenAndServe(":8080", nil); err != nil {
