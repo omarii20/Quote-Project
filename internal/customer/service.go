@@ -97,3 +97,8 @@ func (s *Service) UpdateCustomer(ctx context.Context, id int64, req *UpdateCusto
 
 	return s.repo.Update(ctx, id, req)
 }
+
+// DeleteCustomer deletes a customer from the database by its ID.
+func (s *Service) DeleteCustomer(ctx context.Context, id int64) error {
+	return s.repo.Delete(ctx, id)
+}

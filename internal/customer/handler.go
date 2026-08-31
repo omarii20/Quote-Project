@@ -178,3 +178,42 @@ func (h *Handler) UpdateCustomer(w http.ResponseWriter, r *http.Request, id stri
 		"customer": c,
 	})
 }
+
+// DeleteCustomer handles DELETE /customers/{id}.
+func (h *Handler) DeleteCustomer(w http.ResponseWriter, r *http.Request, id string) {
+	w.Header().Set("Content-Type", "application/json")
+
+	customerID, err := strconv.ParseInt(id, 10, 64)
+	if err != nil || customerID <= 0 {
+		w.WriteHeader(http.StatusBadRequest)
+
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": "invalid customer id",
+		})
+		return
+	}
+
+	err = h.service.DeleteCustomer(r.Context(), customerID)
+	if err != nil {
+		if errors.Is(err, ErrCustomerNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+
+			json.NewEncoder(w).Encode(map[string]string{
+				"error": "customer not found",
+			})
+			return
+		}
+
+		w.WriteHeader(http.StatusInternalServerError)
+
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": "internal server error",
+		})
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"message": "customer deleted successfully",
+	})
+}

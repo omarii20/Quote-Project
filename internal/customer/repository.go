@@ -217,3 +217,28 @@ func (r *Repository) Update(ctx context.Context, id int64, req *UpdateCustomerRe
 
 	return &c, nil
 }
+
+// Delete removes a customer from the database by its ID.
+func (r *Repository) Delete(ctx context.Context, id int64) error {
+
+	query := `
+		DELETE FROM customers
+		WHERE id = $1
+	`
+
+	result, err := r.db.ExecContext(ctx, query, id)
+	if err != nil {
+		return fmt.Errorf("failed to delete customer: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get affected rows: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return ErrCustomerNotFound
+	}
+
+	return nil
+}
