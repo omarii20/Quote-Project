@@ -128,3 +128,53 @@ func (h *Handler) GetCustomersByBusinessID(w http.ResponseWriter, r *http.Reques
 		"customers": customers,
 	})
 }
+
+// UpdateCustomer handles PUT /customers/{id}.
+func (h *Handler) UpdateCustomer(w http.ResponseWriter, r *http.Request, id string) {
+	w.Header().Set("Content-Type", "application/json")
+
+	customerID, err := strconv.ParseInt(id, 10, 64)
+	if err != nil || customerID <= 0 {
+		w.WriteHeader(http.StatusBadRequest)
+
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": "invalid customer id",
+		})
+		return
+	}
+
+	var req UpdateCustomerRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": "invalid request body",
+		})
+		return
+	}
+
+	c, err := h.service.UpdateCustomer(r.Context(), customerID, &req)
+	if err != nil {
+		if errors.Is(err, ErrCustomerNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+
+			json.NewEncoder(w).Encode(map[string]string{
+				"error": "customer not found",
+			})
+			return
+		}
+
+		w.WriteHeader(http.StatusBadRequest)
+
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success":  true,
+		"customer": c,
+	})
+}

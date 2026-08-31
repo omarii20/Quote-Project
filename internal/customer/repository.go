@@ -167,3 +167,53 @@ func (r *Repository) BusinessExists(ctx context.Context, businessID int64) (bool
 
 	return exists, nil
 }
+
+// Update updates an existing customer in the database.
+func (r *Repository) Update(ctx context.Context, id int64, req *UpdateCustomerRequest) (*Customer, error) {
+
+	query := `
+		UPDATE customers
+		SET
+			name = COALESCE($1, name),
+			phone = COALESCE($2, phone),
+			email = COALESCE($3, email),
+			address = COALESCE($4, address),
+			notes = COALESCE($5, notes),
+			updated_at = NOW()
+		WHERE id = $6
+		RETURNING
+			id,
+			business_id,
+			name,
+			phone,
+			email,
+			address,
+			notes,
+			created_at,
+			updated_at
+	`
+
+	var c Customer
+
+	err := r.db.QueryRowContext(ctx, query, req.Name, req.Phone, req.Email, req.Address, req.Notes, id).Scan(
+		&c.ID,
+		&c.BusinessID,
+		&c.Name,
+		&c.Phone,
+		&c.Email,
+		&c.Address,
+		&c.Notes,
+		&c.CreatedAt,
+		&c.UpdatedAt,
+	)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrCustomerNotFound
+		}
+
+		return nil, fmt.Errorf("failed to update customer: %w", err)
+	}
+
+	return &c, nil
+}

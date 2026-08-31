@@ -23,7 +23,8 @@ func RegisterRoutes(handler *Handler) {
 		}
 	})
 
-	// GET /customers/{id}
+	// GET   /customers/{id}
+	// PATCH /customers/{id}
 	http.HandleFunc("/customers/", func(w http.ResponseWriter, r *http.Request) {
 
 		id := strings.TrimPrefix(r.URL.Path, "/customers/")
@@ -32,6 +33,9 @@ func RegisterRoutes(handler *Handler) {
 
 		case http.MethodGet:
 			handler.GetCustomer(w, r, id)
+
+		case http.MethodPatch:
+			handler.UpdateCustomer(w, r, id)
 
 		default:
 			w.Header().Set("Content-Type", "application/json")

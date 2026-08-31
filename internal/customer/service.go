@@ -71,3 +71,29 @@ func (s *Service) GetCustomersByBusinessID(ctx context.Context, businessID int64
 
 	return customers, nil
 }
+
+// UpdateCustomer updates an existing customer's information in the database.
+func (s *Service) UpdateCustomer(ctx context.Context, id int64, req *UpdateCustomerRequest) (*Customer, error) {
+
+	if req.Name != nil {
+		value := strings.TrimSpace(*req.Name)
+
+		if value == "" {
+			return nil, errors.New("customer name cannot be empty")
+		}
+
+		req.Name = &value
+	}
+
+	if req.Phone != nil {
+		value := strings.TrimSpace(*req.Phone)
+
+		if value == "" {
+			return nil, errors.New("phone cannot be empty")
+		}
+
+		req.Phone = &value
+	}
+
+	return s.repo.Update(ctx, id, req)
+}
