@@ -41,6 +41,9 @@ func RegisterRoutes(handler *Handler) {
 		case http.MethodGet:
 			handler.GetQuote(w, r, id)
 
+		case http.MethodPut:
+			handler.UpdateQuote(w, r, id)
+
 		case http.MethodDelete:
 			handler.DeleteQuote(w, r, id)
 

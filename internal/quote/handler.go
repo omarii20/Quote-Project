@@ -120,3 +120,30 @@ func (h *Handler) DeleteQuote(w http.ResponseWriter, r *http.Request, id string)
 
 	w.WriteHeader(http.StatusNoContent)
 }
+
+// UpdateQuote handles the HTTP request to update an existing quote by its ID.
+func (h *Handler) UpdateQuote(w http.ResponseWriter, r *http.Request, id string) {
+	quoteID, err := strconv.ParseInt(id, 10, 64)
+	if err != nil {
+		http.Error(w, "invalid quote id", http.StatusBadRequest)
+		return
+	}
+
+	var req UpdateQuoteRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	updatedQuote, err := h.service.UpdateQuote(r.Context(), quoteID, &req)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	json.NewEncoder(w).Encode(updatedQuote)
+}

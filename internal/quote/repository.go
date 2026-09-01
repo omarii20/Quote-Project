@@ -490,3 +490,129 @@ func (r *Repository) Delete(ctx context.Context, quoteID int64) error {
 
 	return nil
 }
+
+// UpdateQuote updates an existing quote and its associated items in the database.
+func (r *Repository) UpdateQuote(ctx context.Context, q *Quote) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+
+	defer tx.Rollback()
+
+	quoteQuery := `
+		UPDATE quotes
+		SET
+			customer_id = $1,
+			title = $2,
+			description = $3,
+			pricing_method = $4,
+			items_subtotal = $5,
+			manual_subtotal = $6,
+			additional_amount = $7,
+			subtotal = $8,
+			discount_type = $9,
+			discount_value = $10,
+			discount_amount = $11,
+			vat_rate = $12,
+			vat_amount = $13,
+			total = $14,
+			status = $15,
+			valid_until = $16,
+			notes = $17,
+			updated_at = NOW()
+		WHERE id = $18
+		RETURNING updated_at
+	`
+
+	err = tx.QueryRowContext(
+		ctx,
+		quoteQuery,
+		q.CustomerID,
+		q.Title,
+		q.Description,
+		q.PricingMethod,
+		q.ItemsSubtotal,
+		q.ManualSubtotal,
+		q.AdditionalAmount,
+		q.Subtotal,
+		q.DiscountType,
+		q.DiscountValue,
+		q.DiscountAmount,
+		q.VATRate,
+		q.VATAmount,
+		q.Total,
+		q.Status,
+		q.ValidUntil,
+		q.Notes,
+		q.ID,
+	).Scan(
+		&q.UpdatedAt,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return errors.New("quote not found")
+		}
+
+		return fmt.Errorf("failed to update quote: %w", err)
+	}
+
+	_, err = tx.ExecContext(
+		ctx,
+		`
+			DELETE FROM quote_items
+			WHERE quote_id = $1
+		`,
+		q.ID,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to delete old quote items: %w", err)
+	}
+
+	itemQuery := `
+		INSERT INTO quote_items (
+			quote_id,
+			description,
+			quantity,
+			unit_price,
+			total,
+			total_overridden,
+			position
+		)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		RETURNING id, created_at, updated_at
+	`
+
+	for i := range q.Items {
+		item := &q.Items[i]
+
+		item.QuoteID = q.ID
+
+		err = tx.QueryRowContext(
+			ctx,
+			itemQuery,
+			item.QuoteID,
+			item.Description,
+			item.Quantity,
+			item.UnitPrice,
+			item.Total,
+			item.TotalOverridden,
+			item.Position,
+		).Scan(
+			&item.ID,
+			&item.CreatedAt,
+			&item.UpdatedAt,
+		)
+
+		if err != nil {
+			return fmt.Errorf("failed to create updated quote item: %w", err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit quote update: %w", err)
+	}
+
+	return nil
+}

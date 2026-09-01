@@ -166,3 +166,99 @@ func (s *Service) DeleteQuote(ctx context.Context, quoteID int64) error {
 
 	return s.repo.Delete(ctx, quoteID)
 }
+
+// UpdateQuote updates an existing quote with new data.
+func (s *Service) UpdateQuote(ctx context.Context, quoteID int64, req *UpdateQuoteRequest) (*Quote, error) {
+	if quoteID <= 0 {
+		return nil, errors.New("quote id is required")
+	}
+
+	existingQuote, err := s.repo.GetByID(ctx, quoteID)
+	if err != nil {
+		return nil, err
+	}
+
+	if req.CustomerID <= 0 {
+		return nil, errors.New("customer id is required")
+	}
+
+	customerBelongs, err := s.repo.CustomerBelongsToBusiness(ctx, req.CustomerID, existingQuote.BusinessID)
+	if err != nil {
+		return nil, err
+	}
+
+	if !customerBelongs {
+		return nil, errors.New("customer not found or does not belong to business")
+	}
+
+	existingQuote.CustomerID = req.CustomerID
+
+	existingQuote.Title = req.Title
+	existingQuote.Description = req.Description
+
+	existingQuote.PricingMethod = strings.TrimSpace(req.PricingMethod)
+
+	if existingQuote.PricingMethod != "items" &&
+		existingQuote.PricingMethod != "manual" {
+		return nil, errors.New("invalid pricing method")
+	}
+
+	existingQuote.ManualSubtotal = req.ManualSubtotal
+	existingQuote.AdditionalAmount = req.AdditionalAmount
+
+	existingQuote.DiscountType = req.DiscountType
+	existingQuote.DiscountValue = req.DiscountValue
+
+	existingQuote.VATRate = req.VATRate
+
+	existingQuote.Status = req.Status
+	existingQuote.ValidUntil = req.ValidUntil
+	existingQuote.Notes = req.Notes
+
+	existingQuote.Items = req.Items
+
+	if existingQuote.Title != nil {
+		trimmed := strings.TrimSpace(*existingQuote.Title)
+		existingQuote.Title = &trimmed
+	}
+
+	if existingQuote.Description != nil {
+		trimmed := strings.TrimSpace(*existingQuote.Description)
+		existingQuote.Description = &trimmed
+	}
+
+	if existingQuote.Notes != nil {
+		trimmed := strings.TrimSpace(*existingQuote.Notes)
+		existingQuote.Notes = &trimmed
+	}
+
+	if existingQuote.Status == "" {
+		existingQuote.Status = "draft"
+	}
+
+	if existingQuote.PricingMethod == "manual" && len(existingQuote.Items) > 0 {
+		return nil, errors.New("manual pricing cannot contain quote items")
+	}
+
+	if existingQuote.PricingMethod == "items" {
+		if err := calculateItemsPricing(existingQuote); err != nil {
+			return nil, err
+		}
+	}
+
+	if existingQuote.PricingMethod == "manual" {
+		if err := calculateManualPricing(existingQuote); err != nil {
+			return nil, err
+		}
+	}
+
+	if err := calculateFinalPrice(existingQuote); err != nil {
+		return nil, err
+	}
+
+	if err := s.repo.UpdateQuote(ctx, existingQuote); err != nil {
+		return nil, err
+	}
+
+	return existingQuote, nil
+}
