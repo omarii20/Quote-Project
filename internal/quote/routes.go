@@ -35,7 +35,24 @@ func RegisterRoutes(handler *Handler) {
 
 	// Register the route for GET/UPDATE and DELETE requests to /quotes/{id}
 	http.HandleFunc("/quotes/", func(w http.ResponseWriter, r *http.Request) {
-		id := strings.TrimPrefix(r.URL.Path, "/quotes/")
+		path := strings.TrimPrefix(r.URL.Path, "/quotes/")
+
+		if strings.HasSuffix(path, "/status") {
+			id := strings.TrimSuffix(path, "/status")
+
+			switch r.Method {
+			case http.MethodPatch:
+				handler.UpdateQuoteStatus(w, r, id)
+
+			default:
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusMethodNotAllowed)
+			}
+
+			return
+		}
+
+		id := path
 
 		switch r.Method {
 		case http.MethodGet:

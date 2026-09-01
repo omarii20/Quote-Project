@@ -616,3 +616,33 @@ func (r *Repository) UpdateQuote(ctx context.Context, q *Quote) error {
 
 	return nil
 }
+
+// UpdateQuoteStatus updates the status of an existing quote in the database.
+func (r *Repository) UpdateQuoteStatus(ctx context.Context, quoteID int64, status string) error {
+	result, err := r.db.ExecContext(
+		ctx,
+		`
+			UPDATE quotes
+			SET
+				status = $1,
+				updated_at = NOW()
+			WHERE id = $2
+		`,
+		status,
+		quoteID,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update quote status: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to check updated quote status: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return errors.New("quote not found")
+	}
+
+	return nil
+}

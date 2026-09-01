@@ -236,6 +236,10 @@ func (s *Service) UpdateQuote(ctx context.Context, quoteID int64, req *UpdateQuo
 		existingQuote.Status = "draft"
 	}
 
+	if err := validateQuoteStatus(existingQuote.Status); err != nil {
+		return nil, err
+	}
+
 	if existingQuote.PricingMethod == "manual" && len(existingQuote.Items) > 0 {
 		return nil, errors.New("manual pricing cannot contain quote items")
 	}
@@ -261,4 +265,23 @@ func (s *Service) UpdateQuote(ctx context.Context, quoteID int64, req *UpdateQuo
 	}
 
 	return existingQuote, nil
+}
+
+// UpdateQuoteStatus updates the status of an existing quote.
+func (s *Service) UpdateQuoteStatus(ctx context.Context, quoteID int64, req *UpdateQuoteStatusRequest) (*Quote, error) {
+	if quoteID <= 0 {
+		return nil, errors.New("quote id is required")
+	}
+
+	req.Status = strings.TrimSpace(req.Status)
+
+	if err := validateQuoteStatus(req.Status); err != nil {
+		return nil, err
+	}
+
+	if err := s.repo.UpdateQuoteStatus(ctx, quoteID, req.Status); err != nil {
+		return nil, err
+	}
+
+	return s.repo.GetByID(ctx, quoteID)
 }

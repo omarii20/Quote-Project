@@ -69,3 +69,8 @@ type UpdateQuoteRequest struct {
 
 	Items []quoteitem.QuoteItem `json:"items,omitempty"`
 }
+
+// UpdateQuoteStatusRequest represents the request payload for updating the status of a quote.
+type UpdateQuoteStatusRequest struct {
+	Status string `json:"status"`
+}
