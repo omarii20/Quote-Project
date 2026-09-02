@@ -19,8 +19,10 @@ func NewRepository(db *sql.DB) *Repository {
 	}
 }
 
-// CustomerBelongsToBusiness checks if a customer belongs to a specific business.
+// CustomerBelongsToBusiness checks if a customer belongs
+// to a specific business.
 func (r *Repository) CustomerBelongsToBusiness(ctx context.Context, customerID int64, businessID int64) (bool, error) {
+
 	query := `
 		SELECT EXISTS (
 			SELECT 1
@@ -31,10 +33,19 @@ func (r *Repository) CustomerBelongsToBusiness(ctx context.Context, customerID i
 	`
 
 	var exists bool
-	err := r.db.QueryRowContext(ctx, query, customerID, businessID).Scan(&exists)
+
+	err := r.db.QueryRowContext(
+		ctx,
+		query,
+		customerID,
+		businessID,
+	).Scan(&exists)
 
 	if err != nil {
-		return false, fmt.Errorf("failed to check customer business: %w", err)
+		return false, fmt.Errorf(
+			"failed to check customer business: %w",
+			err,
+		)
 	}
 
 	return exists, nil
@@ -42,6 +53,7 @@ func (r *Repository) CustomerBelongsToBusiness(ctx context.Context, customerID i
 
 // BusinessExists checks if a business exists in the database.
 func (r *Repository) BusinessExists(ctx context.Context, businessID int64) (bool, error) {
+
 	query := `
 		SELECT EXISTS (
 			SELECT 1
@@ -52,27 +64,36 @@ func (r *Repository) BusinessExists(ctx context.Context, businessID int64) (bool
 
 	var exists bool
 
-	err := r.db.QueryRowContext(ctx, query, businessID).Scan(&exists)
+	err := r.db.QueryRowContext(
+		ctx,
+		query,
+		businessID,
+	).Scan(&exists)
 
 	if err != nil {
-		return false, fmt.Errorf("failed to check business: %w", err)
+		return false, fmt.Errorf(
+			"failed to check business: %w",
+			err,
+		)
 	}
 
 	return exists, nil
 }
 
-// Create inserts a new quote and its associated items into the database.
+// Create inserts a new quote and its associated items.
 func (r *Repository) Create(ctx context.Context, q *Quote) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
+		return fmt.Errorf(
+			"failed to begin transaction: %w",
+			err,
+		)
 	}
 
-	// Ensure the transaction is rolled back in case of an error
 	defer tx.Rollback()
 
-	// Lock the business row to prevent concurrent quote number generation
 	var lockedBusinessID int64
+
 	err = tx.QueryRowContext(
 		ctx,
 		`
@@ -85,10 +106,12 @@ func (r *Repository) Create(ctx context.Context, q *Quote) error {
 	).Scan(&lockedBusinessID)
 
 	if err != nil {
-		return fmt.Errorf("failed to lock business: %w", err)
+		return fmt.Errorf(
+			"failed to lock business: %w",
+			err,
+		)
 	}
 
-	// Generate the next quote number for the business
 	var nextNumber int
 
 	err = tx.QueryRowContext(
@@ -110,10 +133,16 @@ func (r *Repository) Create(ctx context.Context, q *Quote) error {
 	).Scan(&nextNumber)
 
 	if err != nil {
-		return fmt.Errorf("failed to get next quote number: %w", err)
+		return fmt.Errorf(
+			"failed to get next quote number: %w",
+			err,
+		)
 	}
 
-	q.QuoteNumber = fmt.Sprintf("Q-%04d", nextNumber)
+	q.QuoteNumber = fmt.Sprintf(
+		"Q-%04d",
+		nextNumber,
+	)
 
 	quoteQuery := `
 		INSERT INTO quotes (
@@ -173,8 +202,12 @@ func (r *Repository) Create(ctx context.Context, q *Quote) error {
 		&q.CreatedAt,
 		&q.UpdatedAt,
 	)
+
 	if err != nil {
-		return fmt.Errorf("failed to create quote: %w", err)
+		return fmt.Errorf(
+			"failed to create quote: %w",
+			err,
+		)
 	}
 
 	itemQuery := `
@@ -190,6 +223,7 @@ func (r *Repository) Create(ctx context.Context, q *Quote) error {
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING id, created_at, updated_at
 	`
+
 	for i := range q.Items {
 		item := &q.Items[i]
 
@@ -210,20 +244,29 @@ func (r *Repository) Create(ctx context.Context, q *Quote) error {
 			&item.CreatedAt,
 			&item.UpdatedAt,
 		)
+
 		if err != nil {
-			return fmt.Errorf("failed to create quote item: %w", err)
+			return fmt.Errorf(
+				"failed to create quote item: %w",
+				err,
+			)
 		}
 	}
 
 	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
+		return fmt.Errorf(
+			"failed to commit transaction: %w",
+			err,
+		)
 	}
 
 	return nil
 }
 
-// GetNextQuoteNumber retrieves the next available quote number for a given business.
+// GetNextQuoteNumber retrieves the next available quote number
+// for a business.
 func (r *Repository) GetNextQuoteNumber(ctx context.Context, businessID int64) (string, error) {
+
 	var nextNumber int
 
 	query := `
@@ -240,16 +283,29 @@ func (r *Repository) GetNextQuoteNumber(ctx context.Context, businessID int64) (
 		WHERE business_id = $1
 	`
 
-	err := r.db.QueryRowContext(ctx, query, businessID).Scan(&nextNumber)
+	err := r.db.QueryRowContext(
+		ctx,
+		query,
+		businessID,
+	).Scan(&nextNumber)
+
 	if err != nil {
-		return "", fmt.Errorf("failed to get next quote number: %w", err)
+		return "", fmt.Errorf(
+			"failed to get next quote number: %w",
+			err,
+		)
 	}
 
-	return fmt.Sprintf("Q-%04d", nextNumber), nil
+	return fmt.Sprintf(
+		"Q-%04d",
+		nextNumber,
+	), nil
 }
 
-// GetByID retrieves a quote by its ID from the database.
-func (r *Repository) GetByID(ctx context.Context, quoteID int64) (*Quote, error) {
+// GetByID retrieves a quote only if it belongs
+// to the specified business.
+func (r *Repository) GetByID(ctx context.Context, quoteID int64, businessID int64) (*Quote, error) {
+
 	query := `
 		SELECT
 			id,
@@ -276,11 +332,17 @@ func (r *Repository) GetByID(ctx context.Context, quoteID int64) (*Quote, error)
 			updated_at
 		FROM quotes
 		WHERE id = $1
+		  AND business_id = $2
 	`
 
 	var q Quote
 
-	err := r.db.QueryRowContext(ctx, query, quoteID).Scan(
+	err := r.db.QueryRowContext(
+		ctx,
+		query,
+		quoteID,
+		businessID,
+	).Scan(
 		&q.ID,
 		&q.BusinessID,
 		&q.CustomerID,
@@ -306,14 +368,16 @@ func (r *Repository) GetByID(ctx context.Context, quoteID int64) (*Quote, error)
 	)
 
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, errors.New("quote not found")
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrQuoteNotFound
 		}
 
-		return nil, fmt.Errorf("failed to get quote: %w", err)
+		return nil, fmt.Errorf(
+			"failed to get quote: %w",
+			err,
+		)
 	}
 
-	// Retrieve associated quote items
 	itemsQuery := `
 		SELECT
 			id,
@@ -331,9 +395,16 @@ func (r *Repository) GetByID(ctx context.Context, quoteID int64) (*Quote, error)
 		ORDER BY position ASC
 	`
 
-	rows, err := r.db.QueryContext(ctx, itemsQuery, quoteID)
+	rows, err := r.db.QueryContext(
+		ctx,
+		itemsQuery,
+		quoteID,
+	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get quote items: %w", err)
+		return nil, fmt.Errorf(
+			"failed to get quote items: %w",
+			err,
+		)
 	}
 	defer rows.Close()
 
@@ -353,20 +424,27 @@ func (r *Repository) GetByID(ctx context.Context, quoteID int64) (*Quote, error)
 			&item.UpdatedAt,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("failed to scan quote item: %w", err)
+			return nil, fmt.Errorf(
+				"failed to scan quote item: %w",
+				err,
+			)
 		}
 
 		q.Items = append(q.Items, item)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("failed while reading quote items: %w", err)
+		return nil, fmt.Errorf(
+			"failed while reading quote items: %w",
+			err,
+		)
 	}
 
 	return &q, nil
 }
 
-// GetByBusinessID retrieves (day, week, month, or all) quotes for a specific business within a given period.
+// GetByBusinessID retrieves quotes for a specific business
+// within a given period.
 func (r *Repository) GetByBusinessID(ctx context.Context, businessID int64, period string) ([]Quote, error) {
 
 	query := `
@@ -408,17 +486,22 @@ func (r *Repository) GetByBusinessID(ctx context.Context, businessID int64, peri
 		query += ` AND created_at >= NOW() - INTERVAL '30 days'`
 
 	case "all":
-		// No date filter
-
 	default:
 		return nil, errors.New("invalid period")
 	}
 
 	query += ` ORDER BY created_at DESC`
 
-	rows, err := r.db.QueryContext(ctx, query, businessID)
+	rows, err := r.db.QueryContext(
+		ctx,
+		query,
+		businessID,
+	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get quotes: %w", err)
+		return nil, fmt.Errorf(
+			"failed to get quotes: %w",
+			err,
+		)
 	}
 	defer rows.Close()
 
@@ -451,51 +534,72 @@ func (r *Repository) GetByBusinessID(ctx context.Context, businessID int64, peri
 			&q.CreatedAt,
 			&q.UpdatedAt,
 		)
+
 		if err != nil {
-			return nil, fmt.Errorf("failed to scan quote: %w", err)
+			return nil, fmt.Errorf(
+				"failed to scan quote: %w",
+				err,
+			)
 		}
 
 		quotes = append(quotes, q)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("failed while reading quotes: %w", err)
+		return nil, fmt.Errorf(
+			"failed while reading quotes: %w",
+			err,
+		)
 	}
 
 	return quotes, nil
 }
 
-// Delete removes a quote from the database by its ID.
-func (r *Repository) Delete(ctx context.Context, quoteID int64) error {
+// Delete removes a quote only if it belongs
+// to the specified business.
+func (r *Repository) Delete(ctx context.Context, quoteID int64, businessID int64) error {
+
 	result, err := r.db.ExecContext(
 		ctx,
 		`
 			DELETE FROM quotes
 			WHERE id = $1
+			  AND business_id = $2
 		`,
 		quoteID,
+		businessID,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to delete quote: %w", err)
+		return fmt.Errorf(
+			"failed to delete quote: %w",
+			err,
+		)
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("failed to check deleted quote: %w", err)
+		return fmt.Errorf(
+			"failed to check deleted quote: %w",
+			err,
+		)
 	}
 
 	if rowsAffected == 0 {
-		return errors.New("quote not found")
+		return ErrQuoteNotFound
 	}
 
 	return nil
 }
 
-// UpdateQuote updates an existing quote and its associated items in the database.
+// UpdateQuote updates an existing quote and its associated items.
 func (r *Repository) UpdateQuote(ctx context.Context, q *Quote) error {
+
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
+		return fmt.Errorf(
+			"failed to begin transaction: %w",
+			err,
+		)
 	}
 
 	defer tx.Rollback()
@@ -522,6 +626,7 @@ func (r *Repository) UpdateQuote(ctx context.Context, q *Quote) error {
 			notes = $17,
 			updated_at = NOW()
 		WHERE id = $18
+		  AND business_id = $19
 		RETURNING updated_at
 	`
 
@@ -546,16 +651,20 @@ func (r *Repository) UpdateQuote(ctx context.Context, q *Quote) error {
 		q.ValidUntil,
 		q.Notes,
 		q.ID,
+		q.BusinessID,
 	).Scan(
 		&q.UpdatedAt,
 	)
 
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return errors.New("quote not found")
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrQuoteNotFound
 		}
 
-		return fmt.Errorf("failed to update quote: %w", err)
+		return fmt.Errorf(
+			"failed to update quote: %w",
+			err,
+		)
 	}
 
 	_, err = tx.ExecContext(
@@ -567,7 +676,10 @@ func (r *Repository) UpdateQuote(ctx context.Context, q *Quote) error {
 		q.ID,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to delete old quote items: %w", err)
+		return fmt.Errorf(
+			"failed to delete old quote items: %w",
+			err,
+		)
 	}
 
 	itemQuery := `
@@ -606,19 +718,27 @@ func (r *Repository) UpdateQuote(ctx context.Context, q *Quote) error {
 		)
 
 		if err != nil {
-			return fmt.Errorf("failed to create updated quote item: %w", err)
+			return fmt.Errorf(
+				"failed to create updated quote item: %w",
+				err,
+			)
 		}
 	}
 
 	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit quote update: %w", err)
+		return fmt.Errorf(
+			"failed to commit quote update: %w",
+			err,
+		)
 	}
 
 	return nil
 }
 
-// UpdateQuoteStatus updates the status of an existing quote in the database.
-func (r *Repository) UpdateQuoteStatus(ctx context.Context, quoteID int64, status string) error {
+// UpdateQuoteStatus updates the quote status only if
+// it belongs to the specified business.
+func (r *Repository) UpdateQuoteStatus(ctx context.Context, quoteID int64, businessID int64, status string) error {
+
 	result, err := r.db.ExecContext(
 		ctx,
 		`
@@ -627,21 +747,29 @@ func (r *Repository) UpdateQuoteStatus(ctx context.Context, quoteID int64, statu
 				status = $1,
 				updated_at = NOW()
 			WHERE id = $2
+			  AND business_id = $3
 		`,
 		status,
 		quoteID,
+		businessID,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to update quote status: %w", err)
+		return fmt.Errorf(
+			"failed to update quote status: %w",
+			err,
+		)
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("failed to check updated quote status: %w", err)
+		return fmt.Errorf(
+			"failed to check updated quote status: %w",
+			err,
+		)
 	}
 
 	if rowsAffected == 0 {
-		return errors.New("quote not found")
+		return ErrQuoteNotFound
 	}
 
 	return nil

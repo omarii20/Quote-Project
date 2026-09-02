@@ -2,8 +2,11 @@ package quote
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
+
+	"github.com/omarii20/Quote-Project/internal/auth"
 )
 
 type Handler struct {
@@ -16,13 +19,17 @@ func NewHandler(service *Service) *Handler {
 	}
 }
 
-// GetNextQuoteNumber handles the HTTP request to retrieve the next quote number for a given business.
+// GetNextQuoteNumber handles GET /quotes/next-number.
 func (h *Handler) GetNextQuoteNumber(w http.ResponseWriter, r *http.Request) {
-	businessIDStr := r.URL.Query().Get("business_id")
+	w.Header().Set("Content-Type", "application/json")
 
-	businessID, err := strconv.ParseInt(businessIDStr, 10, 64)
-	if err != nil {
-		http.Error(w, "invalid business id", http.StatusBadRequest)
+	businessID, ok := auth.BusinessIDFromContext(r.Context())
+	if !ok || businessID <= 0 {
+		http.Error(
+			w,
+			"business id not found in context",
+			http.StatusInternalServerError,
+		)
 		return
 	}
 
@@ -36,14 +43,15 @@ func (h *Handler) GetNextQuoteNumber(w http.ResponseWriter, r *http.Request) {
 		"quote_number": quoteNumber,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
 	json.NewEncoder(w).Encode(response)
 }
 
-// CreateQuote handles the HTTP request to create a new quote.
+// CreateQuote handles POST /quotes.
 func (h *Handler) CreateQuote(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
 	var q Quote
 
 	if err := json.NewDecoder(r.Body).Decode(&q); err != nil {
@@ -51,47 +59,80 @@ func (h *Handler) CreateQuote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	businessID, ok := auth.BusinessIDFromContext(r.Context())
+	if !ok || businessID <= 0 {
+		http.Error(
+			w,
+			"business id not found in context",
+			http.StatusInternalServerError,
+		)
+		return
+	}
+
+	// Never trust business_id from the client.
+	q.BusinessID = businessID
+
 	if err := h.service.CreateQuote(r.Context(), &q); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
 	json.NewEncoder(w).Encode(q)
 }
 
-// GetQuote handles the HTTP request to retrieve a quote by its ID.
+// GetQuote handles GET /quotes/{id}.
 func (h *Handler) GetQuote(w http.ResponseWriter, r *http.Request, id string) {
+	w.Header().Set("Content-Type", "application/json")
+
 	quoteID, err := strconv.ParseInt(id, 10, 64)
-	if err != nil {
+	if err != nil || quoteID <= 0 {
 		http.Error(w, "invalid quote id", http.StatusBadRequest)
 		return
 	}
 
-	q, err := h.service.GetQuoteByID(r.Context(), quoteID)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	businessID, ok := auth.BusinessIDFromContext(r.Context())
+	if !ok || businessID <= 0 {
+		http.Error(
+			w,
+			"business id not found in context",
+			http.StatusInternalServerError,
+		)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	q, err := h.service.GetQuoteByID(r.Context(), quoteID, businessID)
+	if err != nil {
+		if errors.Is(err, ErrQuoteNotFound) {
+			http.Error(w, "quote not found", http.StatusNotFound)
+			return
+		}
+
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
 
 	json.NewEncoder(w).Encode(q)
 }
 
-// GetQuotesByBusinessID handles the HTTP request to retrieve quotes for a specific business within a given period.
+// GetQuotesByBusinessID handles GET /quotes?period={period}.
 func (h *Handler) GetQuotesByBusinessID(w http.ResponseWriter, r *http.Request) {
-	businessIDStr := r.URL.Query().Get("business_id")
-	period := r.URL.Query().Get("period")
+	w.Header().Set("Content-Type", "application/json")
 
-	businessID, err := strconv.ParseInt(businessIDStr, 10, 64)
-	if err != nil {
-		http.Error(w, "invalid business id", http.StatusBadRequest)
+	businessID, ok := auth.BusinessIDFromContext(r.Context())
+	if !ok || businessID <= 0 {
+		http.Error(
+			w,
+			"business id not found in context",
+			http.StatusInternalServerError,
+		)
 		return
 	}
+
+	period := r.URL.Query().Get("period")
 
 	quotes, err := h.service.GetQuotesByBusinessID(r.Context(), businessID, period)
 	if err != nil {
@@ -99,33 +140,60 @@ func (h *Handler) GetQuotesByBusinessID(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
 	json.NewEncoder(w).Encode(quotes)
 }
 
-// DeleteQuote handles the HTTP request to delete a quote by its ID.
+// DeleteQuote handles DELETE /quotes/{id}.
 func (h *Handler) DeleteQuote(w http.ResponseWriter, r *http.Request, id string) {
 	quoteID, err := strconv.ParseInt(id, 10, 64)
-	if err != nil {
+	if err != nil || quoteID <= 0 {
 		http.Error(w, "invalid quote id", http.StatusBadRequest)
 		return
 	}
 
-	if err := h.service.DeleteQuote(r.Context(), quoteID); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	businessID, ok := auth.BusinessIDFromContext(r.Context())
+	if !ok || businessID <= 0 {
+		http.Error(
+			w,
+			"business id not found in context",
+			http.StatusInternalServerError,
+		)
+		return
+	}
+
+	err = h.service.DeleteQuote(r.Context(), quoteID, businessID)
+	if err != nil {
+		if errors.Is(err, ErrQuoteNotFound) {
+			http.Error(w, "quote not found", http.StatusNotFound)
+			return
+		}
+
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// UpdateQuote handles the HTTP request to update an existing quote by its ID.
+// UpdateQuote handles PUT /quotes/{id}.
 func (h *Handler) UpdateQuote(w http.ResponseWriter, r *http.Request, id string) {
+	w.Header().Set("Content-Type", "application/json")
+
 	quoteID, err := strconv.ParseInt(id, 10, 64)
-	if err != nil {
+	if err != nil || quoteID <= 0 {
 		http.Error(w, "invalid quote id", http.StatusBadRequest)
+		return
+	}
+
+	businessID, ok := auth.BusinessIDFromContext(r.Context())
+	if !ok || businessID <= 0 {
+		http.Error(
+			w,
+			"business id not found in context",
+			http.StatusInternalServerError,
+		)
 		return
 	}
 
@@ -136,23 +204,39 @@ func (h *Handler) UpdateQuote(w http.ResponseWriter, r *http.Request, id string)
 		return
 	}
 
-	updatedQuote, err := h.service.UpdateQuote(r.Context(), quoteID, &req)
+	updatedQuote, err := h.service.UpdateQuote(r.Context(), quoteID, businessID, &req)
 	if err != nil {
+		if errors.Is(err, ErrQuoteNotFound) {
+			http.Error(w, "quote not found", http.StatusNotFound)
+			return
+		}
+
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
 	json.NewEncoder(w).Encode(updatedQuote)
 }
 
-// UpdateQuoteStatus handles the HTTP request to update the status of an existing quote by its ID.
+// UpdateQuoteStatus handles PATCH /quotes/{id}/status.
 func (h *Handler) UpdateQuoteStatus(w http.ResponseWriter, r *http.Request, id string) {
+	w.Header().Set("Content-Type", "application/json")
+
 	quoteID, err := strconv.ParseInt(id, 10, 64)
-	if err != nil {
+	if err != nil || quoteID <= 0 {
 		http.Error(w, "invalid quote id", http.StatusBadRequest)
+		return
+	}
+
+	businessID, ok := auth.BusinessIDFromContext(r.Context())
+	if !ok || businessID <= 0 {
+		http.Error(
+			w,
+			"business id not found in context",
+			http.StatusInternalServerError,
+		)
 		return
 	}
 
@@ -163,13 +247,17 @@ func (h *Handler) UpdateQuoteStatus(w http.ResponseWriter, r *http.Request, id s
 		return
 	}
 
-	updatedQuote, err := h.service.UpdateQuoteStatus(r.Context(), quoteID, &req)
+	updatedQuote, err := h.service.UpdateQuoteStatus(r.Context(), quoteID, businessID, &req)
 	if err != nil {
+		if errors.Is(err, ErrQuoteNotFound) {
+			http.Error(w, "quote not found", http.StatusNotFound)
+			return
+		}
+
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
 	json.NewEncoder(w).Encode(updatedQuote)
