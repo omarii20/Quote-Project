@@ -39,13 +39,21 @@ func (s *Service) CreateCustomer(ctx context.Context, c *Customer) error {
 	return s.repo.Create(ctx, c)
 }
 
-// GetCustomer retrieves a customer by its ID from the database.
-func (s *Service) GetCustomer(ctx context.Context, id int64) (*Customer, error) {
-	return s.repo.GetByID(ctx, id)
+// GetCustomer retrieves a customer by its ID,
+// only if it belongs to the given business.
+func (s *Service) GetCustomer(
+	ctx context.Context,
+	id int64,
+	businessID int64,
+) (*Customer, error) {
+	return s.repo.GetByID(ctx, id, businessID)
 }
 
-// Get CustomersByBusinessID retrieves all customers associated with a specific business ID.
-func (s *Service) GetCustomersByBusinessID(ctx context.Context, businessID int64) ([]Customer, error) {
+// GetCustomersByBusinessID retrieves all customers associated with a specific business ID.
+func (s *Service) GetCustomersByBusinessID(
+	ctx context.Context,
+	businessID int64,
+) ([]Customer, error) {
 
 	if businessID <= 0 {
 		return nil, errors.New("invalid business id")
@@ -72,8 +80,14 @@ func (s *Service) GetCustomersByBusinessID(ctx context.Context, businessID int64
 	return customers, nil
 }
 
-// UpdateCustomer updates an existing customer's information in the database.
-func (s *Service) UpdateCustomer(ctx context.Context, id int64, req *UpdateCustomerRequest) (*Customer, error) {
+// UpdateCustomer updates an existing customer's information,
+// only if it belongs to the given business.
+func (s *Service) UpdateCustomer(
+	ctx context.Context,
+	id int64,
+	businessID int64,
+	req *UpdateCustomerRequest,
+) (*Customer, error) {
 
 	if req.Name != nil {
 		value := strings.TrimSpace(*req.Name)
@@ -95,10 +109,15 @@ func (s *Service) UpdateCustomer(ctx context.Context, id int64, req *UpdateCusto
 		req.Phone = &value
 	}
 
-	return s.repo.Update(ctx, id, req)
+	return s.repo.Update(ctx, id, businessID, req)
 }
 
-// DeleteCustomer deletes a customer from the database by its ID.
-func (s *Service) DeleteCustomer(ctx context.Context, id int64) error {
-	return s.repo.Delete(ctx, id)
+// DeleteCustomer deletes a customer,
+// only if it belongs to the given business.
+func (s *Service) DeleteCustomer(
+	ctx context.Context,
+	id int64,
+	businessID int64,
+) error {
+	return s.repo.Delete(ctx, id, businessID)
 }

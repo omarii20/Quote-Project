@@ -6,7 +6,10 @@ import (
 	"strings"
 )
 
-var ErrBusinessNotFound = errors.New("business not found")
+var (
+	ErrBusinessNotFound      = errors.New("business not found")
+	ErrBusinessAlreadyExists = errors.New("business already exists")
+)
 
 type Service struct {
 	repo *Repository
@@ -39,6 +42,16 @@ func (s *Service) CreateBusiness(ctx context.Context, b *Business) error {
 
 	if b.FirebaseUID == "" {
 		return errors.New("firebase uid is required")
+	}
+
+	_, err := s.repo.GetBusinessIDByFirebaseUID(ctx, b.FirebaseUID)
+
+	if err == nil {
+		return errors.New("business already exists")
+	}
+
+	if !errors.Is(err, ErrBusinessNotFound) {
+		return err
 	}
 
 	return s.repo.Create(ctx, b)

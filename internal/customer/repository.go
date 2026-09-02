@@ -32,7 +32,16 @@ func (r *Repository) Create(ctx context.Context, c *Customer) error {
 		RETURNING id, created_at, updated_at
 	`
 
-	err := r.db.QueryRowContext(ctx, query, c.BusinessID, c.Name, c.Phone, c.Email, c.Address, c.Notes).Scan(
+	err := r.db.QueryRowContext(
+		ctx,
+		query,
+		c.BusinessID,
+		c.Name,
+		c.Phone,
+		c.Email,
+		c.Address,
+		c.Notes,
+	).Scan(
 		&c.ID,
 		&c.CreatedAt,
 		&c.UpdatedAt,
@@ -45,8 +54,14 @@ func (r *Repository) Create(ctx context.Context, c *Customer) error {
 	return nil
 }
 
-// GetByID retrieves a customer by its ID.
-func (r *Repository) GetByID(ctx context.Context, id int64) (*Customer, error) {
+// GetByID retrieves a customer by ID,
+// but only if it belongs to the authenticated business.
+func (r *Repository) GetByID(
+	ctx context.Context,
+	id int64,
+	businessID int64,
+) (*Customer, error) {
+
 	query := `
 		SELECT
 			id,
@@ -60,11 +75,17 @@ func (r *Repository) GetByID(ctx context.Context, id int64) (*Customer, error) {
 			updated_at
 		FROM customers
 		WHERE id = $1
+		  AND business_id = $2
 	`
 
 	var c Customer
 
-	err := r.db.QueryRowContext(ctx, query, id).Scan(
+	err := r.db.QueryRowContext(
+		ctx,
+		query,
+		id,
+		businessID,
+	).Scan(
 		&c.ID,
 		&c.BusinessID,
 		&c.Name,
@@ -88,7 +109,10 @@ func (r *Repository) GetByID(ctx context.Context, id int64) (*Customer, error) {
 }
 
 // GetByBusinessID retrieves all customers associated with a specific business ID.
-func (r *Repository) GetByBusinessID(ctx context.Context, businessID int64) ([]Customer, error) {
+func (r *Repository) GetByBusinessID(
+	ctx context.Context,
+	businessID int64,
+) ([]Customer, error) {
 
 	query := `
 		SELECT
@@ -143,7 +167,10 @@ func (r *Repository) GetByBusinessID(ctx context.Context, businessID int64) ([]C
 }
 
 // BusinessExists checks if a business with the given ID exists in the database.
-func (r *Repository) BusinessExists(ctx context.Context, businessID int64) (bool, error) {
+func (r *Repository) BusinessExists(
+	ctx context.Context,
+	businessID int64,
+) (bool, error) {
 
 	query := `
 		SELECT EXISTS (
@@ -162,14 +189,23 @@ func (r *Repository) BusinessExists(ctx context.Context, businessID int64) (bool
 	).Scan(&exists)
 
 	if err != nil {
-		return false, fmt.Errorf("failed to check business existence: %w", err)
+		return false, fmt.Errorf(
+			"failed to check business existence: %w",
+			err,
+		)
 	}
 
 	return exists, nil
 }
 
-// Update updates an existing customer in the database.
-func (r *Repository) Update(ctx context.Context, id int64, req *UpdateCustomerRequest) (*Customer, error) {
+// Update updates an existing customer,
+// but only if it belongs to the authenticated business.
+func (r *Repository) Update(
+	ctx context.Context,
+	id int64,
+	businessID int64,
+	req *UpdateCustomerRequest,
+) (*Customer, error) {
 
 	query := `
 		UPDATE customers
@@ -181,6 +217,7 @@ func (r *Repository) Update(ctx context.Context, id int64, req *UpdateCustomerRe
 			notes = COALESCE($5, notes),
 			updated_at = NOW()
 		WHERE id = $6
+		  AND business_id = $7
 		RETURNING
 			id,
 			business_id,
@@ -195,7 +232,17 @@ func (r *Repository) Update(ctx context.Context, id int64, req *UpdateCustomerRe
 
 	var c Customer
 
-	err := r.db.QueryRowContext(ctx, query, req.Name, req.Phone, req.Email, req.Address, req.Notes, id).Scan(
+	err := r.db.QueryRowContext(
+		ctx,
+		query,
+		req.Name,
+		req.Phone,
+		req.Email,
+		req.Address,
+		req.Notes,
+		id,
+		businessID,
+	).Scan(
 		&c.ID,
 		&c.BusinessID,
 		&c.Name,
@@ -218,15 +265,26 @@ func (r *Repository) Update(ctx context.Context, id int64, req *UpdateCustomerRe
 	return &c, nil
 }
 
-// Delete removes a customer from the database by its ID.
-func (r *Repository) Delete(ctx context.Context, id int64) error {
+// Delete removes a customer,
+// but only if it belongs to the authenticated business.
+func (r *Repository) Delete(
+	ctx context.Context,
+	id int64,
+	businessID int64,
+) error {
 
 	query := `
 		DELETE FROM customers
 		WHERE id = $1
+		  AND business_id = $2
 	`
 
-	result, err := r.db.ExecContext(ctx, query, id)
+	result, err := r.db.ExecContext(
+		ctx,
+		query,
+		id,
+		businessID,
+	)
 	if err != nil {
 		return fmt.Errorf("failed to delete customer: %w", err)
 	}

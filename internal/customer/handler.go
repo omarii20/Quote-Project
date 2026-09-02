@@ -5,6 +5,8 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+
+	"github.com/omarii20/Quote-Project/internal/auth"
 )
 
 type Handler struct {
@@ -31,6 +33,18 @@ func (h *Handler) CreateCustomer(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+
+	businessID, ok := auth.BusinessIDFromContext(r.Context())
+	if !ok || businessID <= 0 {
+		w.WriteHeader(http.StatusInternalServerError)
+
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": "business id not found in context",
+		})
+		return
+	}
+
+	c.BusinessID = businessID
 
 	if err := h.service.CreateCustomer(r.Context(), &c); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -63,7 +77,21 @@ func (h *Handler) GetCustomer(w http.ResponseWriter, r *http.Request, id string)
 		return
 	}
 
-	c, err := h.service.GetCustomer(r.Context(), customerID)
+	businessID, ok := auth.BusinessIDFromContext(r.Context())
+	if !ok || businessID <= 0 {
+		w.WriteHeader(http.StatusInternalServerError)
+
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": "business id not found in context",
+		})
+		return
+	}
+
+	c, err := h.service.GetCustomer(
+		r.Context(),
+		customerID,
+		businessID,
+	)
 	if err != nil {
 		if errors.Is(err, ErrCustomerNotFound) {
 			w.WriteHeader(http.StatusNotFound)
@@ -88,23 +116,24 @@ func (h *Handler) GetCustomer(w http.ResponseWriter, r *http.Request, id string)
 	})
 }
 
-// GetCustomersByBusinessID handles GET /customers?business_id={id}.
+// GetCustomersByBusinessID handles GET /customers.
 func (h *Handler) GetCustomersByBusinessID(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	businessIDStr := r.URL.Query().Get("business_id")
-
-	businessID, err := strconv.ParseInt(businessIDStr, 10, 64)
-	if err != nil || businessID <= 0 {
-		w.WriteHeader(http.StatusBadRequest)
+	businessID, ok := auth.BusinessIDFromContext(r.Context())
+	if !ok || businessID <= 0 {
+		w.WriteHeader(http.StatusInternalServerError)
 
 		json.NewEncoder(w).Encode(map[string]string{
-			"error": "invalid business id",
+			"error": "business id not found in context",
 		})
 		return
 	}
 
-	customers, err := h.service.GetCustomersByBusinessID(r.Context(), businessID)
+	customers, err := h.service.GetCustomersByBusinessID(
+		r.Context(),
+		businessID,
+	)
 	if err != nil {
 		if errors.Is(err, ErrBusinessNotFound) {
 			w.WriteHeader(http.StatusNotFound)
@@ -129,7 +158,7 @@ func (h *Handler) GetCustomersByBusinessID(w http.ResponseWriter, r *http.Reques
 	})
 }
 
-// UpdateCustomer handles PUT /customers/{id}.
+// UpdateCustomer handles PATCH /customers/{id}.
 func (h *Handler) UpdateCustomer(w http.ResponseWriter, r *http.Request, id string) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -139,6 +168,16 @@ func (h *Handler) UpdateCustomer(w http.ResponseWriter, r *http.Request, id stri
 
 		json.NewEncoder(w).Encode(map[string]string{
 			"error": "invalid customer id",
+		})
+		return
+	}
+
+	businessID, ok := auth.BusinessIDFromContext(r.Context())
+	if !ok || businessID <= 0 {
+		w.WriteHeader(http.StatusInternalServerError)
+
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": "business id not found in context",
 		})
 		return
 	}
@@ -154,7 +193,12 @@ func (h *Handler) UpdateCustomer(w http.ResponseWriter, r *http.Request, id stri
 		return
 	}
 
-	c, err := h.service.UpdateCustomer(r.Context(), customerID, &req)
+	c, err := h.service.UpdateCustomer(
+		r.Context(),
+		customerID,
+		businessID,
+		&req,
+	)
 	if err != nil {
 		if errors.Is(err, ErrCustomerNotFound) {
 			w.WriteHeader(http.StatusNotFound)
@@ -193,7 +237,21 @@ func (h *Handler) DeleteCustomer(w http.ResponseWriter, r *http.Request, id stri
 		return
 	}
 
-	err = h.service.DeleteCustomer(r.Context(), customerID)
+	businessID, ok := auth.BusinessIDFromContext(r.Context())
+	if !ok || businessID <= 0 {
+		w.WriteHeader(http.StatusInternalServerError)
+
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": "business id not found in context",
+		})
+		return
+	}
+
+	err = h.service.DeleteCustomer(
+		r.Context(),
+		customerID,
+		businessID,
+	)
 	if err != nil {
 		if errors.Is(err, ErrCustomerNotFound) {
 			w.WriteHeader(http.StatusNotFound)
