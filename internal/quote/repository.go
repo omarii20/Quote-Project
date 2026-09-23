@@ -308,34 +308,46 @@ func (r *Repository) GetByID(ctx context.Context, quoteID int64, businessID int6
 
 	query := `
 		SELECT
-			id,
-			business_id,
-			customer_id,
-			quote_number,
-			title,
-			description,
-			pricing_method,
-			items_subtotal,
-			manual_subtotal,
-			additional_amount,
-			subtotal,
-			discount_type,
-			discount_value,
-			discount_amount,
-			vat_rate,
-			vat_amount,
-			total,
-			status,
-			valid_until,
-			notes,
-			created_at,
-			updated_at
-		FROM quotes
-		WHERE id = $1
-		  AND business_id = $2
+			q.id,
+			q.business_id,
+			q.customer_id,
+			q.quote_number,
+			q.title,
+			q.description,
+			q.pricing_method,
+			q.items_subtotal,
+			q.manual_subtotal,
+			q.additional_amount,
+			q.subtotal,
+			q.discount_type,
+			q.discount_value,
+			q.discount_amount,
+			q.vat_rate,
+			q.vat_amount,
+			q.total,
+			q.status,
+			q.valid_until,
+			q.notes,
+			q.created_at,
+			q.updated_at,
+
+			c.id,
+			c.name,
+			c.phone,
+			c.email
+
+		FROM quotes q
+
+		JOIN customers c
+			ON c.id = q.customer_id
+			AND c.business_id = q.business_id
+
+		WHERE q.id = $1
+		AND q.business_id = $2
 	`
 
 	var q Quote
+	var customer QuoteCustomer
 
 	err := r.db.QueryRowContext(
 		ctx,
@@ -365,6 +377,10 @@ func (r *Repository) GetByID(ctx context.Context, quoteID int64, businessID int6
 		&q.Notes,
 		&q.CreatedAt,
 		&q.UpdatedAt,
+		&customer.ID,
+		&customer.Name,
+		&customer.Phone,
+		&customer.Email,
 	)
 
 	if err != nil {
@@ -377,6 +393,8 @@ func (r *Repository) GetByID(ctx context.Context, quoteID int64, businessID int6
 			err,
 		)
 	}
+
+	q.Customer = &customer
 
 	itemsQuery := `
 		SELECT

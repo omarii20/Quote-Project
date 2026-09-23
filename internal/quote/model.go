@@ -14,6 +14,8 @@ type Quote struct {
 	BusinessID int64 `json:"business_id"`
 	CustomerID int64 `json:"customer_id"`
 
+	Customer *QuoteCustomer `json:"customer,omitempty"`
+
 	QuoteNumber string  `json:"quote_number"`
 	Title       *string `json:"title,omitempty"`
 	Description *string `json:"description,omitempty"`
@@ -62,8 +64,6 @@ type UpdateQuoteRequest struct {
 
 	VATRate decimal.Decimal `json:"vat_rate"`
 
-	Status string `json:"status"`
-
 	ValidUntil *time.Time `json:"valid_until,omitempty"`
 	Notes      *string    `json:"notes,omitempty"`
 
@@ -74,4 +74,12 @@ type UpdateQuoteRequest struct {
 // for updating only the quote status.
 type UpdateQuoteStatusRequest struct {
 	Status string `json:"status"`
+}
+
+// Customer Details
+type QuoteCustomer struct {
+	ID    int64  `json:"id"`
+	Name  string `json:"name"`
+	Phone string `json:"phone"`
+	Email string `json:"email"`
 }
