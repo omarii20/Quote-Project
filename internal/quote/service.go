@@ -226,7 +226,7 @@ func (s *Service) UpdateQuote(ctx context.Context, quoteID int64, businessID int
 
 	existingQuote.VATRate = req.VATRate
 
-	existingQuote.Status = strings.TrimSpace(req.Status)
+	existingQuote.Status = "draft"
 	existingQuote.ValidUntil = req.ValidUntil
 	existingQuote.Notes = req.Notes
 
@@ -245,14 +245,6 @@ func (s *Service) UpdateQuote(ctx context.Context, quoteID int64, businessID int
 	if existingQuote.Notes != nil {
 		trimmed := strings.TrimSpace(*existingQuote.Notes)
 		existingQuote.Notes = &trimmed
-	}
-
-	if existingQuote.Status == "" {
-		existingQuote.Status = "draft"
-	}
-
-	if err := validateQuoteStatus(existingQuote.Status); err != nil {
-		return nil, err
 	}
 
 	if existingQuote.PricingMethod == "manual" &&
