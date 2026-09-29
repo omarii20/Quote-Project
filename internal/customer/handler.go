@@ -262,6 +262,15 @@ func (h *Handler) DeleteCustomer(w http.ResponseWriter, r *http.Request, id stri
 			return
 		}
 
+		if errors.Is(err, ErrCustomerHasQuotes) {
+			w.WriteHeader(http.StatusConflict)
+
+			json.NewEncoder(w).Encode(map[string]string{
+				"error": "customer has existing quotes",
+			})
+			return
+		}
+
 		w.WriteHeader(http.StatusInternalServerError)
 
 		json.NewEncoder(w).Encode(map[string]string{

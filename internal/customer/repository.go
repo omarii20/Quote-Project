@@ -300,3 +300,38 @@ func (r *Repository) Delete(
 
 	return nil
 }
+
+// HasQuotes checks whether the customer has existing quotes
+// within the authenticated business.
+func (r *Repository) HasQuotes(
+	ctx context.Context,
+	customerID int64,
+	businessID int64,
+) (bool, error) {
+	var exists bool
+
+	query := `
+		SELECT EXISTS (
+			SELECT 1
+			FROM quotes
+			WHERE customer_id = $1
+			  AND business_id = $2
+		)
+	`
+
+	err := r.db.QueryRowContext(
+		ctx,
+		query,
+		customerID,
+		businessID,
+	).Scan(&exists)
+
+	if err != nil {
+		return false, fmt.Errorf(
+			"failed to check customer quotes: %w",
+			err,
+		)
+	}
+
+	return exists, nil
+}

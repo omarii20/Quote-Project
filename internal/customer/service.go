@@ -8,6 +8,7 @@ import (
 
 var ErrCustomerNotFound = errors.New("customer not found")
 var ErrBusinessNotFound = errors.New("business not found")
+var ErrCustomerHasQuotes = errors.New("customer has existing quotes")
 
 type Service struct {
 	repo *Repository
@@ -113,11 +114,21 @@ func (s *Service) UpdateCustomer(
 }
 
 // DeleteCustomer deletes a customer,
-// only if it belongs to the given business.
+// only if it belongs to the given business
+// and has no existing quotes.
 func (s *Service) DeleteCustomer(
 	ctx context.Context,
 	id int64,
 	businessID int64,
 ) error {
+	hasQuotes, err := s.repo.HasQuotes(ctx, id, businessID)
+	if err != nil {
+		return err
+	}
+
+	if hasQuotes {
+		return ErrCustomerHasQuotes
+	}
+
 	return s.repo.Delete(ctx, id, businessID)
 }
