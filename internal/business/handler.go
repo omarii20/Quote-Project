@@ -4,7 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"strconv"
+
+	"github.com/omarii20/Quote-Project/internal/auth"
 )
 
 type Handler struct {
@@ -28,7 +29,28 @@ func (h *Handler) CreateBusiness(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	firebaseUID, ok := auth.FirebaseUIDFromContext(r.Context())
+	if !ok || firebaseUID == "" {
+		http.Error(
+			w,
+			`{"error":"firebase uid not found in context"}`,
+			http.StatusUnauthorized,
+		)
+		return
+	}
+
+	b.FirebaseUID = firebaseUID
+
 	if err := h.service.CreateBusiness(r.Context(), &b); err != nil {
+		if errors.Is(err, ErrBusinessAlreadyExists) {
+			w.WriteHeader(http.StatusConflict)
+
+			json.NewEncoder(w).Encode(map[string]string{
+				"error": "business already exists",
+			})
+			return
+		}
+
 		w.WriteHeader(http.StatusBadRequest)
 
 		json.NewEncoder(w).Encode(map[string]string{
@@ -45,16 +67,16 @@ func (h *Handler) CreateBusiness(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// GetBusiness handles GET /businesses/{id}.
-func (h *Handler) GetBusiness(w http.ResponseWriter, r *http.Request, id string) {
+// GetBusiness handles GET /businesses/me.
+func (h *Handler) GetBusiness(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	businessID, err := strconv.ParseInt(id, 10, 64)
-	if err != nil || businessID <= 0 {
-		w.WriteHeader(http.StatusBadRequest)
+	businessID, ok := auth.BusinessIDFromContext(r.Context())
+	if !ok || businessID <= 0 {
+		w.WriteHeader(http.StatusInternalServerError)
 
 		json.NewEncoder(w).Encode(map[string]string{
-			"error": "invalid business id",
+			"error": "business id not found in context",
 		})
 		return
 	}
@@ -84,16 +106,16 @@ func (h *Handler) GetBusiness(w http.ResponseWriter, r *http.Request, id string)
 	})
 }
 
-// UpdateBusiness handles PATCH /businesses/{id}.
-func (h *Handler) UpdateBusiness(w http.ResponseWriter, r *http.Request, id string) {
+// UpdateBusiness handles PATCH /businesses/me.
+func (h *Handler) UpdateBusiness(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	businessID, err := strconv.ParseInt(id, 10, 64)
-	if err != nil || businessID <= 0 {
-		w.WriteHeader(http.StatusBadRequest)
+	businessID, ok := auth.BusinessIDFromContext(r.Context())
+	if !ok || businessID <= 0 {
+		w.WriteHeader(http.StatusInternalServerError)
 
 		json.NewEncoder(w).Encode(map[string]string{
-			"error": "invalid business id",
+			"error": "business id not found in context",
 		})
 		return
 	}

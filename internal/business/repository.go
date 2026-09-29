@@ -149,3 +149,34 @@ func (r *Repository) Update(ctx context.Context, id int64, req *UpdateBusinessRe
 
 	return &b, nil
 }
+
+// GetBusinessIDByFirebaseUID retrieves a business ID by its Firebase UID.
+func (r *Repository) GetBusinessIDByFirebaseUID(ctx context.Context, firebaseUID string) (int64, error) {
+
+	query := `
+		SELECT id
+		FROM businesses
+		WHERE firebase_uid = $1
+	`
+
+	var businessID int64
+
+	err := r.db.QueryRowContext(
+		ctx,
+		query,
+		firebaseUID,
+	).Scan(&businessID)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, ErrBusinessNotFound
+		}
+
+		return 0, fmt.Errorf(
+			"failed to get business id by firebase uid: %w",
+			err,
+		)
+	}
+
+	return businessID, nil
+}
