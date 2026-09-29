@@ -56,11 +56,7 @@ func (r *Repository) Create(ctx context.Context, c *Customer) error {
 
 // GetByID retrieves a customer by ID,
 // but only if it belongs to the authenticated business.
-func (r *Repository) GetByID(
-	ctx context.Context,
-	id int64,
-	businessID int64,
-) (*Customer, error) {
+func (r *Repository) GetByID(ctx context.Context, id int64, businessID int64) (*Customer, error) {
 
 	query := `
 		SELECT
@@ -109,10 +105,7 @@ func (r *Repository) GetByID(
 }
 
 // GetByBusinessID retrieves all customers associated with a specific business ID.
-func (r *Repository) GetByBusinessID(
-	ctx context.Context,
-	businessID int64,
-) ([]Customer, error) {
+func (r *Repository) GetByBusinessID(ctx context.Context, businessID int64) ([]Customer, error) {
 
 	query := `
 		SELECT
@@ -167,10 +160,7 @@ func (r *Repository) GetByBusinessID(
 }
 
 // BusinessExists checks if a business with the given ID exists in the database.
-func (r *Repository) BusinessExists(
-	ctx context.Context,
-	businessID int64,
-) (bool, error) {
+func (r *Repository) BusinessExists(ctx context.Context, businessID int64) (bool, error) {
 
 	query := `
 		SELECT EXISTS (
@@ -200,12 +190,7 @@ func (r *Repository) BusinessExists(
 
 // Update updates an existing customer,
 // but only if it belongs to the authenticated business.
-func (r *Repository) Update(
-	ctx context.Context,
-	id int64,
-	businessID int64,
-	req *UpdateCustomerRequest,
-) (*Customer, error) {
+func (r *Repository) Update(ctx context.Context, id int64, businessID int64, req *UpdateCustomerRequest) (*Customer, error) {
 
 	query := `
 		UPDATE customers
@@ -267,11 +252,7 @@ func (r *Repository) Update(
 
 // Delete removes a customer,
 // but only if it belongs to the authenticated business.
-func (r *Repository) Delete(
-	ctx context.Context,
-	id int64,
-	businessID int64,
-) error {
+func (r *Repository) Delete(ctx context.Context, id int64, businessID int64) error {
 
 	query := `
 		DELETE FROM customers
@@ -303,11 +284,7 @@ func (r *Repository) Delete(
 
 // HasQuotes checks whether the customer has existing quotes
 // within the authenticated business.
-func (r *Repository) HasQuotes(
-	ctx context.Context,
-	customerID int64,
-	businessID int64,
-) (bool, error) {
+func (r *Repository) HasQuotes(ctx context.Context, customerID int64, businessID int64) (bool, error) {
 	var exists bool
 
 	query := `

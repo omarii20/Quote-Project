@@ -42,19 +42,12 @@ func (s *Service) CreateCustomer(ctx context.Context, c *Customer) error {
 
 // GetCustomer retrieves a customer by its ID,
 // only if it belongs to the given business.
-func (s *Service) GetCustomer(
-	ctx context.Context,
-	id int64,
-	businessID int64,
-) (*Customer, error) {
+func (s *Service) GetCustomer(ctx context.Context, id int64, businessID int64) (*Customer, error) {
 	return s.repo.GetByID(ctx, id, businessID)
 }
 
 // GetCustomersByBusinessID retrieves all customers associated with a specific business ID.
-func (s *Service) GetCustomersByBusinessID(
-	ctx context.Context,
-	businessID int64,
-) ([]Customer, error) {
+func (s *Service) GetCustomersByBusinessID(ctx context.Context, businessID int64) ([]Customer, error) {
 
 	if businessID <= 0 {
 		return nil, errors.New("invalid business id")
@@ -83,12 +76,7 @@ func (s *Service) GetCustomersByBusinessID(
 
 // UpdateCustomer updates an existing customer's information,
 // only if it belongs to the given business.
-func (s *Service) UpdateCustomer(
-	ctx context.Context,
-	id int64,
-	businessID int64,
-	req *UpdateCustomerRequest,
-) (*Customer, error) {
+func (s *Service) UpdateCustomer(ctx context.Context, id int64, businessID int64, req *UpdateCustomerRequest) (*Customer, error) {
 
 	if req.Name != nil {
 		value := strings.TrimSpace(*req.Name)
@@ -116,11 +104,7 @@ func (s *Service) UpdateCustomer(
 // DeleteCustomer deletes a customer,
 // only if it belongs to the given business
 // and has no existing quotes.
-func (s *Service) DeleteCustomer(
-	ctx context.Context,
-	id int64,
-	businessID int64,
-) error {
+func (s *Service) DeleteCustomer(ctx context.Context, id int64, businessID int64) error {
 	hasQuotes, err := s.repo.HasQuotes(ctx, id, businessID)
 	if err != nil {
 		return err
