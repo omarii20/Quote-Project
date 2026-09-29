@@ -45,8 +45,15 @@ func (r *Repository) Create(ctx context.Context, c *Customer) error {
 	return nil
 }
 
+<<<<<<< Updated upstream
 // GetByID retrieves a customer by its ID.
 func (r *Repository) GetByID(ctx context.Context, id int64) (*Customer, error) {
+=======
+// GetByID retrieves a customer by ID,
+// but only if it belongs to the authenticated business.
+func (r *Repository) GetByID(ctx context.Context, id int64, businessID int64) (*Customer, error) {
+
+>>>>>>> Stashed changes
 	query := `
 		SELECT
 			id,
@@ -168,8 +175,14 @@ func (r *Repository) BusinessExists(ctx context.Context, businessID int64) (bool
 	return exists, nil
 }
 
+<<<<<<< Updated upstream
 // Update updates an existing customer in the database.
 func (r *Repository) Update(ctx context.Context, id int64, req *UpdateCustomerRequest) (*Customer, error) {
+=======
+// Update updates an existing customer,
+// but only if it belongs to the authenticated business.
+func (r *Repository) Update(ctx context.Context, id int64, businessID int64, req *UpdateCustomerRequest) (*Customer, error) {
+>>>>>>> Stashed changes
 
 	query := `
 		UPDATE customers
@@ -218,8 +231,14 @@ func (r *Repository) Update(ctx context.Context, id int64, req *UpdateCustomerRe
 	return &c, nil
 }
 
+<<<<<<< Updated upstream
 // Delete removes a customer from the database by its ID.
 func (r *Repository) Delete(ctx context.Context, id int64) error {
+=======
+// Delete removes a customer,
+// but only if it belongs to the authenticated business.
+func (r *Repository) Delete(ctx context.Context, id int64, businessID int64) error {
+>>>>>>> Stashed changes
 
 	query := `
 		DELETE FROM customers
@@ -241,4 +260,32 @@ func (r *Repository) Delete(ctx context.Context, id int64) error {
 	}
 
 	return nil
+}
+
+// HasQuotes checks whether the customer has existing quotes
+// within the authenticated business.
+func (r *Repository) HasQuotes(ctx context.Context, customerID int64, businessID int64) (bool, error) {
+	var exists bool
+
+	query := `
+		SELECT EXISTS (
+			SELECT 1
+			FROM quotes
+			WHERE customer_id = $1
+			  AND business_id = $2
+		)
+	`
+
+	err := r.db.QueryRowContext(
+		ctx,
+		query,
+		customerID,
+		businessID,
+	).Scan(&exists)
+
+	if err != nil {
+		return false, fmt.Errorf("failed to check customer quotes: %w", err)
+	}
+
+	return exists, nil
 }

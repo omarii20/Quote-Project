@@ -193,13 +193,41 @@ func (h *Handler) DeleteCustomer(w http.ResponseWriter, r *http.Request, id stri
 		return
 	}
 
+<<<<<<< Updated upstream
 	err = h.service.DeleteCustomer(r.Context(), customerID)
+=======
+	businessID, ok := auth.BusinessIDFromContext(r.Context())
+	if !ok || businessID <= 0 {
+		w.WriteHeader(http.StatusInternalServerError)
+
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": "business id not found in context",
+		})
+		return
+	}
+
+	err = h.service.DeleteCustomer(
+		r.Context(),
+		customerID,
+		businessID,
+	)
+
+>>>>>>> Stashed changes
 	if err != nil {
 		if errors.Is(err, ErrCustomerNotFound) {
 			w.WriteHeader(http.StatusNotFound)
 
 			json.NewEncoder(w).Encode(map[string]string{
 				"error": "customer not found",
+			})
+			return
+		}
+
+		if errors.Is(err, ErrCustomerHasQuotes) {
+			w.WriteHeader(http.StatusConflict)
+
+			json.NewEncoder(w).Encode(map[string]string{
+				"error": "customer has existing quotes",
 			})
 			return
 		}

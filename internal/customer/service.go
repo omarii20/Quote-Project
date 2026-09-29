@@ -8,6 +8,7 @@ import (
 
 var ErrCustomerNotFound = errors.New("customer not found")
 var ErrBusinessNotFound = errors.New("business not found")
+var ErrCustomerHasQuotes = errors.New("customer has existing quotes")
 
 type Service struct {
 	repo *Repository
@@ -39,12 +40,22 @@ func (s *Service) CreateCustomer(ctx context.Context, c *Customer) error {
 	return s.repo.Create(ctx, c)
 }
 
+<<<<<<< Updated upstream
 // GetCustomer retrieves a customer by its ID from the database.
 func (s *Service) GetCustomer(ctx context.Context, id int64) (*Customer, error) {
 	return s.repo.GetByID(ctx, id)
 }
 
 // Get CustomersByBusinessID retrieves all customers associated with a specific business ID.
+=======
+// GetCustomer retrieves a customer by its ID,
+// only if it belongs to the given business.
+func (s *Service) GetCustomer(ctx context.Context, id int64, businessID int64) (*Customer, error) {
+	return s.repo.GetByID(ctx, id, businessID)
+}
+
+// GetCustomersByBusinessID retrieves all customers associated with a specific business ID.
+>>>>>>> Stashed changes
 func (s *Service) GetCustomersByBusinessID(ctx context.Context, businessID int64) ([]Customer, error) {
 
 	if businessID <= 0 {
@@ -72,9 +83,15 @@ func (s *Service) GetCustomersByBusinessID(ctx context.Context, businessID int64
 	return customers, nil
 }
 
+<<<<<<< Updated upstream
 // UpdateCustomer updates an existing customer's information in the database.
 func (s *Service) UpdateCustomer(ctx context.Context, id int64, req *UpdateCustomerRequest) (*Customer, error) {
 
+=======
+// UpdateCustomer updates an existing customer's information,
+// only if it belongs to the given business.
+func (s *Service) UpdateCustomer(ctx context.Context, id int64, businessID int64, req *UpdateCustomerRequest) (*Customer, error) {
+>>>>>>> Stashed changes
 	if req.Name != nil {
 		value := strings.TrimSpace(*req.Name)
 
@@ -98,7 +115,24 @@ func (s *Service) UpdateCustomer(ctx context.Context, id int64, req *UpdateCusto
 	return s.repo.Update(ctx, id, req)
 }
 
+<<<<<<< Updated upstream
 // DeleteCustomer deletes a customer from the database by its ID.
 func (s *Service) DeleteCustomer(ctx context.Context, id int64) error {
 	return s.repo.Delete(ctx, id)
+=======
+// DeleteCustomer deletes a customer,
+// only if it belongs to the given business
+// and has no existing quotes.
+func (s *Service) DeleteCustomer(ctx context.Context, id int64, businessID int64) error {
+	hasQuotes, err := s.repo.HasQuotes(ctx, id, businessID)
+	if err != nil {
+		return err
+	}
+
+	if hasQuotes {
+		return ErrCustomerHasQuotes
+	}
+
+	return s.repo.Delete(ctx, id, businessID)
+>>>>>>> Stashed changes
 }
