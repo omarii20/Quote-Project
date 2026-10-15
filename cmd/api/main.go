@@ -9,7 +9,9 @@ import (
 	"github.com/omarii20/Quote-Project/internal/config"
 	"github.com/omarii20/Quote-Project/internal/customer"
 	"github.com/omarii20/Quote-Project/internal/database"
+	"github.com/omarii20/Quote-Project/internal/pdf"
 	"github.com/omarii20/Quote-Project/internal/quote"
+	"github.com/omarii20/Quote-Project/internal/quotedocument"
 
 	"github.com/omarii20/Quote-Project/internal/auth"
 )
@@ -57,7 +59,17 @@ func main() {
 	quoteService := quote.NewService(quoteRepo)
 	quoteHandler := quote.NewHandler(quoteService)
 
-	quote.RegisterRoutes(quoteHandler, authMiddleware, businessContext)
+	// PDF Generator
+	pdfGenerator := pdf.NewGenerator("/usr/bin/google-chrome")
+
+	// Quote Document Service
+	quoteDocumentService := quotedocument.NewService(quoteService, businessRepo, pdfGenerator)
+
+	// Quote Document Handler
+	quoteDocumentHandler := quotedocument.NewHandler(quoteDocumentService)
+
+	// Register Quote Routes
+	quote.RegisterRoutes(quoteHandler, authMiddleware, businessContext, quoteDocumentHandler.GetQuotePDF)
 
 	// Start the HTTP server
 	log.Println("server running on http://localhost:8080")

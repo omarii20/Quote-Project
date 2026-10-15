@@ -7,10 +7,18 @@ import (
 	"github.com/omarii20/Quote-Project/internal/auth"
 )
 
+// PDFHandler handles GET /quotes/{id}/pdf.
+type PDFHandler func(
+	w http.ResponseWriter,
+	r *http.Request,
+	id string,
+)
+
 func RegisterRoutes(
 	handler *Handler,
 	authMiddleware *auth.Middleware,
 	businessContext *auth.BusinessContext,
+	pdfHandler PDFHandler,
 ) {
 
 	// GET /quotes/next-number
@@ -21,9 +29,7 @@ func RegisterRoutes(
 					switch r.Method {
 					case http.MethodGet:
 						handler.GetNextQuoteNumber(w, r)
-
 					default:
-						w.Header().Set("Content-Type", "application/json")
 						w.WriteHeader(http.StatusMethodNotAllowed)
 					}
 				}),
@@ -40,12 +46,9 @@ func RegisterRoutes(
 					switch r.Method {
 					case http.MethodPost:
 						handler.CreateQuote(w, r)
-
 					case http.MethodGet:
 						handler.GetQuotesByBusinessID(w, r)
-
 					default:
-						w.Header().Set("Content-Type", "application/json")
 						w.WriteHeader(http.StatusMethodNotAllowed)
 					}
 				}),
@@ -57,27 +60,40 @@ func RegisterRoutes(
 	// PUT /quotes/{id}
 	// DELETE /quotes/{id}
 	// PATCH /quotes/{id}/status
+	// GET /quotes/{id}/pdf
 	http.Handle("/quotes/",
 		authMiddleware.Authenticate(
 			businessContext.Resolve(
 				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					path := strings.TrimPrefix(r.URL.Path, "/quotes/")
 
-					if strings.HasSuffix(path, "/status") {
-						id := strings.TrimSuffix(path, "/status")
+					// GET /quotes/{id}/pdf
+					if strings.HasSuffix(path, "/pdf") {
+						id := strings.TrimSuffix(path, "/pdf")
 
-						switch r.Method {
-						case http.MethodPatch:
-							handler.UpdateQuoteStatus(w, r, id)
-
-						default:
-							w.Header().Set("Content-Type", "application/json")
+						if r.Method != http.MethodGet {
 							w.WriteHeader(http.StatusMethodNotAllowed)
+							return
 						}
 
+						pdfHandler(w, r, id)
 						return
 					}
 
+					// PATCH /quotes/{id}/status
+					if strings.HasSuffix(path, "/status") {
+						id := strings.TrimSuffix(path, "/status")
+
+						if r.Method != http.MethodPatch {
+							w.WriteHeader(http.StatusMethodNotAllowed)
+							return
+						}
+
+						handler.UpdateQuoteStatus(w, r, id)
+						return
+					}
+
+					// /quotes/{id}
 					id := path
 
 					switch r.Method {
@@ -91,7 +107,6 @@ func RegisterRoutes(
 						handler.DeleteQuote(w, r, id)
 
 					default:
-						w.Header().Set("Content-Type", "application/json")
 						w.WriteHeader(http.StatusMethodNotAllowed)
 					}
 				}),

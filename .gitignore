@@ -1,2 +1,24 @@
+# Environment variables
 .env
+.env.*
+
+# Database backups
+backups/
+*.dump
+*.backup
+
+# Local PostgreSQL data
+pgdata/
+postgres_data/
+
+# Node dependencies (if used)
 node_modules/
+
+# Build files
+bin/
+dist/
+*.exe
+
+# Editor files
+.vscode/
+.idea/

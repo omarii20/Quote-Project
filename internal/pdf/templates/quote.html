@@ -1,0 +1,348 @@
+
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+
+    <style>
+        @page {
+            size: A4;
+            margin: 14mm;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, "Noto Sans Hebrew", sans-serif;
+            color: #1e293b;
+            direction: rtl;
+            background: #ffffff;
+            font-size: 13px;
+            line-height: 1.7;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px solid #1e40af;
+            padding-bottom: 14px;
+            margin-bottom: 18px;
+        }
+
+        .business-name {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1e40af;
+        }
+
+        .business-details {
+            color: #64748b;
+            font-size: 12px;
+            margin-top: 6px;
+        }
+
+        .logo {
+            max-width: 110px;
+            max-height: 80px;
+            object-fit: contain;
+        }
+
+        .document-title {
+            font-size: 25px;
+            font-weight: 700;
+            margin: 0 0 10px;
+        }
+
+        .quote-number {
+            color: #64748b;
+            margin-bottom: 16px;
+        }
+
+        .info-grid {
+            display: flex;
+            justify-content: space-between;
+            gap: 24px;
+            margin-bottom: 18px;
+        }
+
+        .info-box {
+            width: 50%;
+            padding: 16px;
+            background: #f8fafc;
+            border-radius: 8px;
+        }
+
+        .info-label {
+            color: #64748b;
+            font-size: 11px;
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin: 18px 0 8px;
+        }
+
+        .description {
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+        }
+
+        th {
+            background: #eff6ff;
+            color: #1e40af;
+            font-weight: 700;
+            text-align: right;
+            padding: 9px 10px;
+            border-bottom: 1px solid #dbeafe;
+        }
+
+        td {
+            padding: 9px 10px;
+            border-bottom: 1px solid #e2e8f0;
+            text-align: right;
+            vertical-align: top;
+        }
+
+        tr {
+            break-inside: avoid;
+        }
+
+        .amount {
+            direction: ltr;
+            unicode-bidi: isolate;
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        .summary {
+            width: 55%;
+            margin-top: 18px;
+            margin-right: auto;
+            break-inside: avoid;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .summary-total {
+            background: #1e40af;
+            color: white;
+            border-radius: 6px;
+            padding: 14px;
+            font-size: 17px;
+            font-weight: 700;
+            margin-top: 12px;
+        }
+
+        .notes {
+            margin-top: 20px;
+            padding: 12px;
+            background: #f8fafc;
+            border-right: 3px solid #1e40af;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            break-inside: avoid;
+        }
+
+        .footer {
+            margin-top: 20px;
+            padding-top: 10px;
+            border-top: 1px solid #e2e8f0;
+            color: #94a3b8;
+            font-size: 11px;
+            text-align: center;
+        }
+        .manual-price {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            margin-top: 24px;
+            padding: 12px 0;
+            border-bottom: 1px solid #e2e8f0;
+            break-inside: avoid;
+        }
+
+        .manual-price .section-title {
+            margin: 0;
+        }
+
+        .manual-price .amount {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1e40af;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Business Header -->
+    <div class="header">
+        <div>
+            <div class="business-name">{{.Business.BusinessName}}</div>
+
+            <div class="business-details">
+                {{.Business.OwnerName}}
+                {{if .Business.Phone}}
+                    | {{.Business.Phone}}
+                {{end}}
+                {{if .Business.Email}}
+                    | {{.Business.Email}}
+                {{end}}
+                {{if .Business.Address}}
+                    <div>{{.Business.Address}}</div>
+                {{end}}
+            </div>
+        </div>
+
+        {{if .Business.LogoURL}}
+            <img class="logo" src="{{.Business.LogoURL}}" alt="לוגו העסק">
+        {{end}}
+    </div>
+
+    <!-- Quote Title -->
+    <h1 class="document-title">הצעת מחיר</h1>
+
+    <div class="quote-number">
+        מספר הצעה:
+        <bdi>{{.Quote.QuoteNumber}}</bdi>
+    </div>
+
+    <!-- Customer / Dates -->
+    <div class="info-grid">
+        <div class="info-box">
+            <div class="info-label">פרטי לקוח</div>
+            <div class="info-value">{{.CustomerName}}</div>
+            {{if .CustomerPhone}}
+                <div>{{.CustomerPhone}}</div>
+            {{end}}
+            {{if .CustomerEmail}}
+                <div>{{.CustomerEmail}}</div>
+            {{end}}
+        </div>
+
+        <div class="info-box">
+            <div class="info-label">תאריך הפקה</div>
+            <div class="info-value">{{.CreatedDate}}</div>
+
+            {{if .ValidUntil}}
+                <div class="info-label">בתוקף עד</div>
+                <div class="info-value">{{.ValidUntil}}</div>
+            {{end}}
+        </div>
+    </div>
+
+    <!-- Quote Content -->
+    {{if .Quote.Title}}
+        <h2 class="section-title">{{.Quote.Title}}</h2>
+    {{end}}
+
+    {{if .Quote.Description}}
+        <div class="description">{{.Quote.Description}}</div>
+    {{end}}
+
+    {{if .IsItems}}
+        <h2 class="section-title">פירוט פריטים</h2>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>תיאור</th>
+                    <th>כמות</th>
+                    <th>מחיר יחידה</th>
+                    <th>סה״כ</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {{range .Items}}
+                    <tr>
+                        <td>{{.Description}}</td>
+                        <td>{{.Quantity}}</td>
+                        <td class="amount">{{.UnitPriceDisplay}}</td>
+                        <td class="amount">{{.TotalDisplay}}</td>
+                    </tr>
+                {{end}}
+            </tbody>
+        </table>
+    {{else}}
+        <div class="summary-row">
+            <h2 class="section-title">עלות העבודה</h2>
+            <span class="amount">{{.ManualSubtotalDisplay}}</span>
+        </div>
+    {{end}}
+
+    <!-- Pricing Summary -->
+    <div class="summary">
+        {{if .IsItems}}
+            <div class="summary-row">
+                <span>סכום פריטים</span>
+                <span class="amount">{{.ItemsSubtotalDisplay}}</span>
+            </div>
+        {{end}}
+
+        {{if .HasAdditionalAmount}}
+            <div class="summary-row">
+                <span>תוספת</span>
+                <span class="amount">{{.AdditionalAmountDisplay}}</span>
+            </div>
+        {{end}}
+
+        <div class="summary-row">
+            <span>סכום ביניים</span>
+            <span class="amount">{{.SubtotalDisplay}}</span>
+        </div>
+
+        {{if .HasDiscount}}
+            <div class="summary-row">
+                <span>הנחה</span>
+                <span class="amount">-{{.DiscountAmountDisplay}}</span>
+            </div>
+        {{end}}
+
+        <div class="summary-row">
+            <span>מע״מ ({{.VatRateDisplay}})</span>
+            <span class="amount">{{.VatAmountDisplay}}</span>
+        </div>
+
+        <div class="summary-row summary-total">
+            <span>סה״כ לתשלום</span>
+            <span class="amount">{{.TotalDisplay}}</span>
+        </div>
+    </div>
+
+    {{if .Quote.Notes}}
+        <div class="notes">
+            <strong>הערות</strong>
+            <div>{{.Quote.Notes}}</div>
+        </div>
+    {{end}}
+
+    <div class="footer">
+        מסמך זה הופק באמצעות מערכת Quote Project
+    </div>
+
+</body>
+</html>
